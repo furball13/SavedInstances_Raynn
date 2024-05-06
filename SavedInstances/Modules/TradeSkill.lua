@@ -267,7 +267,7 @@ function Module:ScanItemCDs()
   end
 end
 
-function Module:RecordSkill(spellID, expires)
+function Module:RecordSkill(spellID, expires, maxTime, available, maxCharges, cooldownDuration)
   if not spellID then return end
   local info = tradeSpells[spellID]
   if not info then
@@ -286,7 +286,10 @@ function Module:RecordSkill(spellID, expires)
   local spellName = GetSpellInfo(spellID)
   local title = spellName
   local link = nil
+  local cdType = "spell"
+
   if info == "item" then
+    cdType = "item"
     if not expires then
       self:ScheduleTimer("ScanItemCDs", 2) -- theres a delay for the item to go on cd
       return
@@ -320,7 +323,7 @@ function Module:RecordSkill(spellID, expires)
     end
   end
 
-  if expires == 0 then
+  if expires == 0 and not maxTime then
     if t.Skills[index] then -- a cd ended early
       SI:Debug("Clearing Trade skill cd: %s (%s)",spellName,spellID)
     end
@@ -343,9 +346,15 @@ function Module:RecordSkill(spellID, expires)
       (sinfo.Expires and format("%d",change).." sec" or "(new)")..
       " Local time: "..date("%c",expires))
   end
+
   sinfo.Title = title
   sinfo.Link = link
+  sinfo.cdType = cdType
   sinfo.Expires = expires
+  sinfo.Available = available
+  sinfo.MaxCharges = maxCharges
+  sinfo.MaxTime = maxTime
+  sinfo.CooldownDuration = cooldownDuration
 
   return true
 end
@@ -366,7 +375,9 @@ function Module:ScanTradeSkill(isAll)
   local count = 0
   local data = isAll and C_TradeSkillUI_GetAllRecipeIDs() or C_TradeSkillUI_GetFilteredRecipeIDs()
   for _, spellID in ipairs(data) do
-    local cooldown, isDayCooldown = C_TradeSkillUI_GetRecipeCooldown(spellID)
+    local cooldown, isDayCooldown, available, maxCharges = C_TradeSkillUI_GetRecipeCooldown(spellID)
+    local currentCharges, maxCharges, cooldownStart, cooldownDuration, chargeModRate = GetSpellCharges(spellID)
+    local maxTime
     if (
       cooldown and isDayCooldown -- GetRecipeCooldown often returns WRONG answers for daily cds
       and not tonumber(tradeSpells[spellID]) -- daily flag incorrectly set for some multi-day cds (Northrend Alchemy Research)
@@ -374,11 +385,14 @@ function Module:ScanTradeSkill(isAll)
       cooldown = SI:GetNextDailySkillResetTime()
     elseif cooldown then
       cooldown = time() + cooldown -- on cooldown
+      if currentCharges then -- multiple charges; calculate time to ALL available
+	maxTime = time() + (maxCharges - currentCharges) * cooldownDuration - (GetTime() - cooldownStart)
+      end
     else
       cooldown = 0 -- off cooldown or no cooldown
     end
 
-    self:RecordSkill(spellID, cooldown)
+    self:RecordSkill(spellID, cooldown, maxTime, available, maxCharges, cooldownDuration)
     if cooldown then
       self.cooldownFound = self.cooldownFound or {}
       self.cooldownFound[spellID] = true
