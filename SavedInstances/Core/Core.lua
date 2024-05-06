@@ -2422,11 +2422,11 @@ end
 
 function SI:OnInitialize()
   local versionString = C_AddOns.GetAddOnMetadata("SavedInstances", "version")
-  --@debug@
-  if versionString == "@project-version@" then
+  --[==[@debug@
+  if versionString == "10.2.2" then
     versionString = "Dev"
   end
-  --@end-debug@
+  --@end-debug@]==]
   SI.version = versionString
 
   SavedInstancesDB = SavedInstancesDB or SI.defaultDB
@@ -3728,7 +3728,7 @@ function SI:ShowTooltip(anchorframe)
       addsep()
     end
     if SI.db.Tooltip.ShowCategories then
-      tooltip:AddLine(YELLOWFONT .. L["Quest progresses"] .. FONTEND)
+      tooltip:AddLine(YELLOWFONT .. L["Quest Progresses"] .. FONTEND)
     end
   end)
 

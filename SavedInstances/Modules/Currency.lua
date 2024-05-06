@@ -96,6 +96,7 @@ local currency = {
   2123, -- Bloody Tokens
   2797, -- Trophy of Strife
   2045, -- Dragon Glyph Embers
+  2588, -- Riders of Azeroth Badges
   2118, -- Elemental Overflow
   2122, -- Storm Sigil
   2409, -- Whelpling Crest Fragment Tracker [DNT]

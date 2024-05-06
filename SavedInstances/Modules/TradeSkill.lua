@@ -178,7 +178,7 @@ local tradeSpells = {
   [138646] = true, -- Lightning Steel Ingot
   [143255] = true, -- Balanced Trillium Ingot
   [171690] = true, -- Truesteel Ingot
-  [171718] = true, -- Truestell Ingot, 3 charges w/ 24hr recharge
+  [171718] = true, -- Truesteel Ingot, 3 charges w/ 24hr recharge
   [176090] = true, -- Secrets of Draenor
 
   -- Leatherworking
