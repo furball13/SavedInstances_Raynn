@@ -704,6 +704,28 @@ local presets = {
     persists = false,
     fullObjective = false,
   },
+  -- Sniffenseeking
+  ['df-sniffenseeking'] = {
+    type = 'list',
+    expansion = 9,
+    index = 16,
+    name = L["Sniffenseeking"],
+    questID = {
+      75747, -- Buried Collection
+      75748, -- Gathered Resources
+      75749, -- Hidden Treasures
+    },
+    reset = 'weekly',
+    persists = false,
+    progress = false,
+    onlyOnOrCompleted = false,
+    fullObjective = false,
+    questName = {
+      [75747] = "Buried Collection", -- Buried Collection
+      [75748] = "Gathered Resources", -- Gathered Resources
+      [75749] = "Hidden Treasures", -- Hidden Treasures
+    },
+  },
   -- Time Rift
   ['df-time-rift'] = {
     type = 'single',
@@ -906,7 +928,11 @@ local function ShowQuestListStore(store, entry)
     end
   end
 
-  return completed .. "/" .. total
+  if completed == total then
+    return SI.questCheckMark
+  else
+    return completed .. "/" .. total
+  end
 end
 
 ---handle tooltip of quest

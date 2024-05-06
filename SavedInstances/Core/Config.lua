@@ -944,14 +944,14 @@ function Config:SetupOptions()
   LibStub("AceConfig-3.0"):RegisterOptionsTable(namespace, SI.Options, { "si", "savedinstances" })
 
   local AceConfigDialog = LibStub("AceConfigDialog-3.0")
-  local _, genernalFrameName = AceConfigDialog:AddToBlizOptions(namespace, nil, nil, "General")
+  local _, generalFrameName = AceConfigDialog:AddToBlizOptions(namespace, nil, nil, "General")
   AceConfigDialog:AddToBlizOptions(namespace, L["Quest progresses"], namespace, "Progress")
   AceConfigDialog:AddToBlizOptions(namespace, CURRENCY, namespace, "Currency")
   AceConfigDialog:AddToBlizOptions(namespace, L["Indicators"], namespace, "Indicators")
   AceConfigDialog:AddToBlizOptions(namespace, L["Instances"], namespace, "Instances")
   local _, charactersFrameName = AceConfigDialog:AddToBlizOptions(namespace, L["Characters"], namespace, "Characters")
 
-  configFrameName = genernalFrameName
+  configFrameName = generalFrameName
   configCharactersFrameName = charactersFrameName
 end
 
