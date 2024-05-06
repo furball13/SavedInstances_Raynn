@@ -952,6 +952,7 @@ function Config:SetupOptions()
   local _, charactersFrameName = AceConfigDialog:AddToBlizOptions(namespace, L["Characters"], namespace, "Characters")
 
   configFrameName = genernalFrameName
+  configFrameName = generalFrameName
   configCharactersFrameName = charactersFrameName
 end
 
