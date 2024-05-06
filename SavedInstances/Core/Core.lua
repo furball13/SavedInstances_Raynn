@@ -36,6 +36,7 @@ local Calling = SI:GetModule('Calling')
 local Currency = SI:GetModule('Currency')
 local MythicPlus = SI:GetModule('MythicPlus')
 local Progress = SI:GetModule('Progress')
+local Professions = SI:GetModule('Professions')
 local TradeSkill = SI:GetModule('TradeSkill')
 local Warfront = SI:GetModule('Warfront')
 
@@ -262,6 +263,9 @@ SI.defaultDB = {
   --   scenario = (boolean),
   --   boss = (boolean),
   -- }
+
+  -- Professions
+  -- table<string, QuestStore|QuestListStore|table>
 
   -- Calling
   -- unlocked = (boolean),
@@ -541,6 +545,8 @@ function SI:QuestIgnored(questID)
     end
     return true
   elseif Progress:QuestEnabled(questID) then
+    return true
+  elseif Professions:QuestEnabled(questID) then
     return true
   end
 end
@@ -1361,6 +1367,7 @@ function SI:UpdateToonData()
           end
         end
         Progress:OnDailyReset(toon)
+        Professions:OnDailyReset(toon)
         ti.DailyResetTime = (ti.DailyResetTime and ti.DailyResetTime + 24*3600) or nextreset
       end
     end
@@ -2432,6 +2439,7 @@ function SI:toonInit()
   ti.Quests = ti.Quests or {}
   ti.Skills = ti.Skills or {}
   ti.Progress = ti.Progress or {}
+  ti.Professions = ti.Professions or {}
   ti.DailyWorldQuest = nil -- REMOVED
   ti.Artifact = nil -- REMOVED
   ti.Cloak = nil -- REMOVED
@@ -3769,6 +3777,15 @@ function SI:ShowTooltip(anchorframe)
     end
     if SI.db.Tooltip.ShowCategories then
       tooltip:AddLine(YELLOWFONT .. L["Warfronts"] .. FONTEND)
+    end
+  end)
+
+  Professions:ShowTooltip(tooltip, columns, showall, function()
+    if SI.db.Tooltip.CategorySpaces then
+      addsep()
+    end
+    if SI.db.Tooltip.ShowCategories then
+      tooltip:AddLine(YELLOWFONT .. L["Profession Quests"] .. FONTEND)
     end
   end)
 
