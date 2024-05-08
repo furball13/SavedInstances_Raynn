@@ -852,7 +852,7 @@ local function UpdateQuestStore(store, questID)
         store.numRequired = numRequired
         showText = objectiveText
       else
-        showText = showText .. ' ' .. objectiveText
+        showText = showText .. '\n' .. objectiveText
       end
     end
 
@@ -1516,7 +1516,7 @@ do
       order = order,
       type = 'group',
       childGroups = 'tab',
-      name = L["Quest progresses"],
+      name = L["Quest Progresses"],
       args = {
         Enable = {
           order = 1,
