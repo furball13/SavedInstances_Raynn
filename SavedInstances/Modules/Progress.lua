@@ -852,7 +852,7 @@ local function UpdateQuestStore(store, questID)
         store.numRequired = numRequired
         showText = objectiveText
       else
-        showText = showText .. ' ' .. objectiveText
+        showText = showText .. '\n' .. objectiveText
       end
     end
 
