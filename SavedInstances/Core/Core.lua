@@ -1526,12 +1526,21 @@ function SI:QuestIsDarkmoonMonthly()
   local id = GetQuestID()
   local scope = id and QuestExceptions[id]
   if scope and scope ~= "Darkmoon" then return false end -- one-time referral quests
+  -- Reward Currencies changed for 11.0 (JF)
+  local currencies = C_QuestLog.GetQuestRewardCurrencies(id)
+  for _, currency in pairs(currencies) do
+    if currency.texture == 134481 then
+      return true
+    end
+  end
+  --[[
   for i=1,GetNumRewardCurrencies() do
     local name,texture,amount = GetQuestCurrencyInfo("reward",i)
     if texture == 134481 then
       return true
     end
   end
+  ]]--
   return false
 end
 
