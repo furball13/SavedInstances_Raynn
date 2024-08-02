@@ -36,6 +36,7 @@ local Calling = SI:GetModule('Calling')
 local Currency = SI:GetModule('Currency')
 local MythicPlus = SI:GetModule('MythicPlus')
 local Progress = SI:GetModule('Progress')
+local Professions = SI:GetModule('Professions')
 local TradeSkill = SI:GetModule('TradeSkill')
 local Warfront = SI:GetModule('Warfront')
 
@@ -3693,7 +3694,7 @@ function SI:ShowTooltip(anchorframe)
       end
       if tc > 0 and t.Level == GetMaxLevelForPlayerExpansion() then
         showt = true
-        addColumns(columns, toon, tooltip)
+        --addColumns(columns, toon, tooltip)
       end
     end
     local adc, awc = SI:QuestCount(nil)
