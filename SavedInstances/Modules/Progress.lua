@@ -775,7 +775,7 @@ end
 ---reset the progress of quest to the store
 ---@param store QuestStore
 ---@param persists boolean
-local function ResetQuestStore(store, persists)
+local function ResetQuestStore(store, persists, toon)
   if not store.show or store.isComplete or not persists then
     -- the store should be wiped if any of the following conditions are met:
     -- 1. is not on quest
@@ -783,6 +783,9 @@ local function ResetQuestStore(store, persists)
     -- 3. is not persistent
 
     wipe(store)
+    if toon.totalQuestCount then
+      toon.totalQuestCount = max(toon.totalQuestCount - 1, 0)
+    end
 
     store.show = false
   end
@@ -1177,19 +1180,19 @@ function Module:ResetEntry(key, entry, toon)
     ---@cast entry SingleQuestEntry
     ---@cast store QuestStore
 
-    ResetQuestStore(store, entry.persists)
-  elseif entry.type == "any" then
+    ResetQuestStore(store, entry.persists, toon)
+  elseif entry.type == 'any' then
     ---@cast entry AnyQuestEntry
     ---@cast store QuestStore
 
-    ResetQuestStore(store, entry.persists)
-  elseif entry.type == "list" then
+    ResetQuestStore(store, entry.persists, toon)
+  elseif entry.type == 'list' then
     ---@cast entry QuestListEntry
     ---@cast store QuestListStore
 
     for _, questID in ipairs(entry.questID) do
       if store[questID] then
-        ResetQuestStore(store[questID], entry.persists)
+        ResetQuestStore(store[questID], entry.persists, toon)
       end
     end
   elseif entry.type == "custom" then

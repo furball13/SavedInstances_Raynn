@@ -43,15 +43,14 @@ local currency = SI.currency
 local QuestExceptions = SI.QuestExceptions
 local TimewalkingItemQuest = SI.TimewalkingItemQuest
 
-local Config = SI:GetModule('Config')
-local Tooltip = SI:GetModule('Tooltip')
-local Calling = SI:GetModule('Calling')
-local Currency = SI:GetModule('Currency')
-local MythicPlus = SI:GetModule('MythicPlus')
-local Progress = SI:GetModule('Progress')
-local Professions = SI:GetModule('Professions')
-local TradeSkill = SI:GetModule('TradeSkill')
-local Warfront = SI:GetModule('Warfront')
+local Config = SI:GetModule("Config")
+local Tooltip = SI:GetModule("Tooltip")
+local Calling = SI:GetModule("Calling")
+local Currency = SI:GetModule("Currency")
+local MythicPlus = SI:GetModule("MythicPlus")
+local Progress = SI:GetModule("Progress")
+local TradeSkill = SI:GetModule("TradeSkill")
+local Warfront = SI:GetModule("Warfront")
 
 SI.Indicators = {
   ICON_STAR = ICON_LIST[1] .. "16:16:0:0|t",
@@ -278,9 +277,6 @@ SI.defaultDB = {
   --   scenario = (boolean),
   --   boss = (boolean),
   -- }
-
-  -- Professions
-  -- table<string, QuestStore|QuestListStore|table>
 
   -- Calling
   -- unlocked = (boolean),
@@ -564,8 +560,6 @@ function SI:QuestIgnored(questID)
     return true
   elseif Progress:QuestEnabled(questID) then
     return true
-  elseif Professions:QuestEnabled(questID) then
-    return true
   end
 end
 
@@ -576,10 +570,8 @@ function SI:QuestCount(toonname)
   else -- account-wide quests
     t = db
   end
-  if not t then
-    return 0, 0
-  end
-  local dailycount, weeklycount = 0, 0
+  if not t then return 0,0,0 end
+  local dailycount, weeklycount = 0,0
   -- ticket 96: GetDailyQuestsCompleted() is unreliable, the response is laggy and it fails to count some quests
   local id, info
   for id, info in pairs(t.Quests) do
@@ -591,7 +583,7 @@ function SI:QuestCount(toonname)
       end
     end
   end
-  return dailycount, weeklycount
+  return dailycount, weeklycount, (t.totalQuestCount or 0)
 end
 
 -- local addon functions below
@@ -1428,9 +1420,7 @@ function SI:UpdateToonData()
           end
         end
         Progress:OnDailyReset(toon)
-        Professions:OnDailyReset(toon)
-        ti.DailyResetTime = (ti.DailyResetTime and ti.DailyResetTime + 24*3600) or nextreset
-
+        ti.DailyResetTime = (ti.DailyResetTime and ti.DailyResetTime + 24 * 3600) or nextreset
       end
     end
     Calling:OnDailyReset()
@@ -1491,6 +1481,7 @@ function SI:UpdateToonData()
             ci.earnedThisWeek = 0
           end
         end
+	ti.totalQuestCount = ti.totalQuestCount or 0
         Progress:OnWeeklyReset(toon)
         ti.WeeklyResetTime = (ti.WeeklyResetTime and ti.WeeklyResetTime + 7 * 24 * 3600) or nextreset
       end
@@ -1540,6 +1531,9 @@ function SI:UpdateToonData()
     t.Zone = zone
   end
   t.Level = UnitLevel("player")
+  if t.Level == GetMaxLevelForPlayerExpansion() then
+    _, t.totalQuestCount = C_QuestLog.GetNumQuestLogEntries()
+  end
   local lrace, race = UnitRace("player")
   local faction, lfaction = UnitFactionGroup("player")
   t.Faction = faction
@@ -2557,7 +2551,6 @@ function SI:toonInit()
   ti.Quests = ti.Quests or {}
   ti.Skills = ti.Skills or {}
   ti.Progress = ti.Progress or {}
-  ti.Professions = ti.Professions or {}
   ti.DailyWorldQuest = nil -- REMOVED
   ti.Artifact = nil -- REMOVED
   ti.Cloak = nil -- REMOVED
@@ -3865,9 +3858,9 @@ function SI:ShowTooltip(anchorframe)
   end
 
   do
-    local showd, showw
+    local showd, showw, showt
     for toon, t in cpairs(SI.db.Toons, true) do
-      local dc, wc = SI:QuestCount(toon)
+      local dc, wc, tc = SI:QuestCount(toon)
       if dc > 0 and (SI.db.Tooltip.TrackDailyQuests or showall) then
         showd = true
         addColumns(columns, toon, tooltip)
@@ -3876,16 +3869,19 @@ function SI:ShowTooltip(anchorframe)
         showw = true
         addColumns(columns, toon, tooltip)
       end
+      if tc > 0 and t.Level == GetMaxLevelForPlayerExpansion() then
+        showt = true
+        --addColumns(columns, toon, tooltip)
+      end
     end
     local adc, awc = SI:QuestCount(nil)
-    if adc > 0 and (SI.db.Tooltip.TrackDailyQuests or showall) then
-      showd = true
-    end
-    if awc > 0 and (SI.db.Tooltip.TrackWeeklyQuests or showall) then
-      showw = true
-    end
-    if SI.db.Tooltip.CategorySpaces and (showd or showw) then
+    if adc > 0 and (SI.db.Tooltip.TrackDailyQuests or showall) then showd = true end
+    if awc > 0 and (SI.db.Tooltip.TrackWeeklyQuests or showall) then showw = true end
+    if SI.db.Tooltip.CategorySpaces and (showd or showw or showt) then
       addsep()
+    end
+    if showt then
+      showt = tooltip:AddLine(YELLOWFONT .. L["Total Quests"] .. FONTEND)
     end
     if showd then
       showd = tooltip:AddLine(YELLOWFONT .. L["Daily Quests"] .. (adc > 0 and " (" .. adc .. ")" or "") .. FONTEND)
@@ -3902,8 +3898,11 @@ function SI:ShowTooltip(anchorframe)
       end
     end
     for toon, t in cpairs(SI.db.Toons, true) do
-      local dc, wc = SI:QuestCount(toon)
-      local col = columns[toon .. 1]
+      local dc, wc, tc = SI:QuestCount(toon)
+      local col = columns[toon..1]
+      if showt and col and tc > 0 then
+        tooltip:SetCell(showt, col, ((tc > 25 and REDFONT) or (tc > 15 and YELLOWFONT) or GREENFONT) .. tc .. FONTEND, "CENTER",maxcol)
+      end
       if showd and col and dc > 0 then
         tooltip:SetCell(showd, col, ClassColorise(t.Class, dc), "CENTER", maxcol)
         tooltip:SetCellScript(showd, col, "OnEnter", hoverTooltip.ShowQuestTooltip, { toon, dc, true })
@@ -3932,15 +3931,6 @@ function SI:ShowTooltip(anchorframe)
     end
     if SI.db.Tooltip.ShowCategories then
       tooltip:AddLine(YELLOWFONT .. L["Warfronts"] .. FONTEND)
-    end
-  end)
-
-  Professions:ShowTooltip(tooltip, columns, showall, function()
-    if SI.db.Tooltip.CategorySpaces then
-      addsep()
-    end
-    if SI.db.Tooltip.ShowCategories then
-      tooltip:AddLine(YELLOWFONT .. L["Profession Quests"] .. FONTEND)
     end
   end)
 
