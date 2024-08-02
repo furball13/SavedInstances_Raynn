@@ -570,8 +570,10 @@ function SI:QuestCount(toonname)
   else -- account-wide quests
     t = db
   end
-  if not t then return 0,0,0 end
-  local dailycount, weeklycount = 0,0
+  if not t then
+    return 0, 0
+  end
+  local dailycount, weeklycount = 0, 0
   -- ticket 96: GetDailyQuestsCompleted() is unreliable, the response is laggy and it fails to count some quests
   local id, info
   for id, info in pairs(t.Quests) do
@@ -583,7 +585,7 @@ function SI:QuestCount(toonname)
       end
     end
   end
-  return dailycount, weeklycount, (t.totalQuestCount or 0)
+  return dailycount, weeklycount
 end
 
 -- local addon functions below
@@ -1481,7 +1483,6 @@ function SI:UpdateToonData()
             ci.earnedThisWeek = 0
           end
         end
-	ti.totalQuestCount = ti.totalQuestCount or 0
         Progress:OnWeeklyReset(toon)
         ti.WeeklyResetTime = (ti.WeeklyResetTime and ti.WeeklyResetTime + 7 * 24 * 3600) or nextreset
       end
@@ -1531,9 +1532,6 @@ function SI:UpdateToonData()
     t.Zone = zone
   end
   t.Level = UnitLevel("player")
-  if t.Level == GetMaxLevelForPlayerExpansion() then
-    _, t.totalQuestCount = C_QuestLog.GetNumQuestLogEntries()
-  end
   local lrace, race = UnitRace("player")
   local faction, lfaction = UnitFactionGroup("player")
   t.Faction = faction
@@ -1568,14 +1566,12 @@ function SI:QuestIsDarkmoonMonthly()
 
   local id = GetQuestID()
   local scope = id and QuestExceptions[id]
-  if scope and scope ~= "Darkmoon" then
-    -- one-time referral quests
-    return false
-  end
 
-  local currencyRewards = C_QuestLog.GetQuestRewardCurrencies(id)
-  for _, reward in ipairs(currencyRewards) do
-    if reward.currencyID == 515 then
+  if scope and scope ~= "Darkmoon" then return false end -- one-time referral quests
+  -- Reward Currencies changed for 11.0 (JF)
+  local currencies = C_QuestLog.GetQuestRewardCurrencies(id)
+  for _, currency in pairs(currencies) do
+    if currency.texture == 134481 then
       return true
     end
   end
@@ -2562,11 +2558,11 @@ end
 
 function SI:OnInitialize()
   local versionString = C_AddOns.GetAddOnMetadata("SavedInstances", "version")
-  --@debug@
-  if versionString == "@project-version@" then
+  --[==[@debug@
+  if versionString == "10.2.2" then
     versionString = "Dev"
   end
-  --@end-debug@
+  --@end-debug@]==]
   SI.version = versionString
 
   SavedInstancesDB = SavedInstancesDB or SI.defaultDB
@@ -3858,9 +3854,9 @@ function SI:ShowTooltip(anchorframe)
   end
 
   do
-    local showd, showw, showt
+    local showd, showw
     for toon, t in cpairs(SI.db.Toons, true) do
-      local dc, wc, tc = SI:QuestCount(toon)
+      local dc, wc = SI:QuestCount(toon)
       if dc > 0 and (SI.db.Tooltip.TrackDailyQuests or showall) then
         showd = true
         addColumns(columns, toon, tooltip)
@@ -3869,19 +3865,16 @@ function SI:ShowTooltip(anchorframe)
         showw = true
         addColumns(columns, toon, tooltip)
       end
-      if tc > 0 and t.Level == GetMaxLevelForPlayerExpansion() then
-        showt = true
-        --addColumns(columns, toon, tooltip)
-      end
     end
     local adc, awc = SI:QuestCount(nil)
-    if adc > 0 and (SI.db.Tooltip.TrackDailyQuests or showall) then showd = true end
-    if awc > 0 and (SI.db.Tooltip.TrackWeeklyQuests or showall) then showw = true end
-    if SI.db.Tooltip.CategorySpaces and (showd or showw or showt) then
-      addsep()
+    if adc > 0 and (SI.db.Tooltip.TrackDailyQuests or showall) then
+      showd = true
     end
-    if showt then
-      showt = tooltip:AddLine(YELLOWFONT .. L["Total Quests"] .. FONTEND)
+    if awc > 0 and (SI.db.Tooltip.TrackWeeklyQuests or showall) then
+      showw = true
+    end
+    if SI.db.Tooltip.CategorySpaces and (showd or showw) then
+      addsep()
     end
     if showd then
       showd = tooltip:AddLine(YELLOWFONT .. L["Daily Quests"] .. (adc > 0 and " (" .. adc .. ")" or "") .. FONTEND)
@@ -3898,11 +3891,8 @@ function SI:ShowTooltip(anchorframe)
       end
     end
     for toon, t in cpairs(SI.db.Toons, true) do
-      local dc, wc, tc = SI:QuestCount(toon)
-      local col = columns[toon..1]
-      if showt and col and tc > 0 then
-        tooltip:SetCell(showt, col, ((tc > 25 and REDFONT) or (tc > 15 and YELLOWFONT) or GREENFONT) .. tc .. FONTEND, "CENTER",maxcol)
-      end
+      local dc, wc = SI:QuestCount(toon)
+      local col = columns[toon .. 1]
       if showd and col and dc > 0 then
         tooltip:SetCell(showd, col, ClassColorise(t.Class, dc), "CENTER", maxcol)
         tooltip:SetCellScript(showd, col, "OnEnter", hoverTooltip.ShowQuestTooltip, { toon, dc, true })
@@ -3921,7 +3911,7 @@ function SI:ShowTooltip(anchorframe)
       addsep()
     end
     if SI.db.Tooltip.ShowCategories then
-      tooltip:AddLine(YELLOWFONT .. L["Quest progresses"] .. FONTEND)
+      tooltip:AddLine(YELLOWFONT .. L["Quest Progresses"] .. FONTEND)
     end
   end)
 

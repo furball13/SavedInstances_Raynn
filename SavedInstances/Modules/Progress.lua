@@ -616,6 +616,28 @@ local presets = {
     persists = false,
     fullObjective = false,
   },
+  -- Sniffenseeking
+  ['df-sniffenseeking'] = {
+    type = 'list',
+    expansion = 9,
+    index = 16,
+    name = L["Sniffenseeking"],
+    questID = {
+      75747, -- Buried Collection
+      75748, -- Gathered Resources
+      75749, -- Hidden Treasures
+    },
+    reset = 'weekly',
+    persists = false,
+    progress = false,
+    onlyOnOrCompleted = false,
+    fullObjective = false,
+    questName = {
+      [75747] = "Buried Collection", -- Buried Collection
+      [75748] = "Gathered Resources", -- Gathered Resources
+      [75749] = "Hidden Treasures", -- Hidden Treasures
+    },
+  },
   -- Time Rift
   ["df-time-rift"] = {
     type = "single",
@@ -758,7 +780,7 @@ local function UpdateQuestStore(store, questID)
         store.numRequired = numRequired
         showText = objectiveText
       else
-        showText = showText .. " " .. objectiveText
+        showText = showText .. '\n' .. objectiveText
       end
     end
 
@@ -775,7 +797,7 @@ end
 ---reset the progress of quest to the store
 ---@param store QuestStore
 ---@param persists boolean
-local function ResetQuestStore(store, persists, toon)
+local function ResetQuestStore(store, persists)
   if not store.show or store.isComplete or not persists then
     -- the store should be wiped if any of the following conditions are met:
     -- 1. is not on quest
@@ -783,9 +805,6 @@ local function ResetQuestStore(store, persists, toon)
     -- 3. is not persistent
 
     wipe(store)
-    if toon.totalQuestCount then
-      toon.totalQuestCount = max(toon.totalQuestCount - 1, 0)
-    end
 
     store.show = false
   end
@@ -837,7 +856,11 @@ local function ShowQuestListStore(store, entry)
     end
   end
 
-  return completed .. "/" .. total
+  if completed == total then
+    return SI.questCheckMark
+  else
+    return completed .. "/" .. total
+  end
 end
 
 ---handle tooltip of quest
@@ -1180,19 +1203,19 @@ function Module:ResetEntry(key, entry, toon)
     ---@cast entry SingleQuestEntry
     ---@cast store QuestStore
 
-    ResetQuestStore(store, entry.persists, toon)
-  elseif entry.type == 'any' then
+    ResetQuestStore(store, entry.persists)
+  elseif entry.type == "any" then
     ---@cast entry AnyQuestEntry
     ---@cast store QuestStore
 
-    ResetQuestStore(store, entry.persists, toon)
-  elseif entry.type == 'list' then
+    ResetQuestStore(store, entry.persists)
+  elseif entry.type == "list" then
     ---@cast entry QuestListEntry
     ---@cast store QuestListStore
 
     for _, questID in ipairs(entry.questID) do
       if store[questID] then
-        ResetQuestStore(store[questID], entry.persists, toon)
+        ResetQuestStore(store[questID], entry.persists)
       end
     end
   elseif entry.type == "custom" then
@@ -1483,9 +1506,9 @@ do
 
     options = {
       order = order,
-      type = "group",
-      childGroups = "tab",
-      name = L["Quest progresses"],
+      type = 'group',
+      childGroups = 'tab',
+      name = L["Quest Progresses"],
       args = {
         Enable = {
           order = 1,
