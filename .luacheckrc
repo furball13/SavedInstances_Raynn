@@ -52,6 +52,7 @@ globals = {
 	"C_ChatInfo",
 	"C_Calendar",
 	"C_MythicPlus",
+	"C_Spell",
 	"CooldownFrame_Set",
 	"DEFAULT_CHAT_FRAME",
 	"GameTooltip_Hide",
@@ -99,6 +100,7 @@ globals = {
 	"ScenarioFinderFrame",
 	"BonusRollFrame",
 	"SettingsPanel",
+	"WeeklyRewardsFrame",
 
 	-- HybridScrollFrame
 	"HybridScrollFrame_CreateButtons",
@@ -987,6 +989,7 @@ globals = {
 	"C_Social.TwitterPostAchievement",
 	"C_Social.TwitterPostMessage",
 	"C_Social.TwitterPostScreenshot",
+	"C_Spell",
 	"C_StorePublic",
 	"C_StorePublic.IsDisabledByParentalControls",
 	"C_StorePublic.IsEnabled",
@@ -1009,6 +1012,7 @@ globals = {
 	"C_TaskQuest.RequestPreloadRewardData",
 	"C_Timer",
 	"C_Timer.After",
+	"C_TooltipInfo",
 	"C_ToyBox",
 	"C_ToyBox.ForceToyRefilter",
 	"C_ToyBox.GetCollectedShown",
