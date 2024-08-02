@@ -3726,7 +3726,7 @@ function SI:ShowTooltip(anchorframe)
       end
       if tc > 0 and t.Level == GetMaxLevelForPlayerExpansion() then
         showt = true
-        addColumns(columns, toon, tooltip)
+        --addColumns(columns, toon, tooltip)
       end
     end
     local adc, awc = SI:QuestCount(nil)
