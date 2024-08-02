@@ -201,7 +201,11 @@ SI.defaultDB = {
   -- Title: string
   -- Link: hyperlink
   -- Expires: expiration
-
+  -- Available: available charges
+  -- CooldownDuration: cooldown for each charge
+  -- Max: max charges
+  -- MaxTime: time until all charges available
+  -- cdType: spell or item
   -- BonusRoll: key: int value:
   -- name: string
   -- time: int
@@ -1466,7 +1470,18 @@ function SI:UpdateToonData()
     if ti.Skills then
       for spellid, sinfo in pairs(ti.Skills) do
         if sinfo.Expires and sinfo.Expires < time() then
-          ti.Skills[spellid] = nil
+	  if not sinfo.MaxTime or sinfo.MaxTime < time() then
+	    if sinfo.cdType == "item" then
+	      ti.Skills[spellid] = nil
+	    end
+	  else
+	    -- reset cooldown for next charge
+	    sinfo.Expires = sinfo.Expires + (sinfo.CooldownDuration or 0)
+	    if sinfo.Available and sinfo.MaxCharges and sinfo.Available < sinfo.MaxCharges then sinfo.Available = sinfo.Available + 1 end
+	  end
+	else
+	  -- no expire, so all charges should be available
+	  if sinfo.Available and sinfo.MaxCharges and sinfo.Available < sinfo.MaxCharges then sinfo.Available = sinfo.MaxCharges end
         end
       end
     end
@@ -1839,9 +1854,10 @@ hoverTooltip.ShowSkillTooltip = function(cell, arg, ...)
   for _, sinfo in ipairs(tmp) do
     local line = indicatortip:AddLine()
     local title = sinfo.Link or sinfo.Title or "???"
-    local tstr = SecondsToTime((sinfo.Expires or 0) - time())
-    indicatortip:SetCell(line, 1, title, "LEFT", 2)
-    indicatortip:SetCell(line, 3, tstr, "RIGHT")
+    if sinfo.Available and sinfo.MaxCharges then title = title .. " (" .. sinfo.Available .. "/" .. sinfo.MaxCharges .. ")" end
+    local tstr = SecondsToTime((sinfo.Expires or 0) - time()) .. ((sinfo.MaxTime and " (" .. SecondsToTime(sinfo.MaxTime - time()) .. ")") or "")
+    indicatortip:SetCell(line,1,title,"LEFT",2)
+    indicatortip:SetCell(line,3,tstr,"RIGHT")
   end
   indicatortip:Show()
 end
@@ -3942,15 +3958,27 @@ function SI:ShowTooltip(anchorframe)
     end
     for toon, t in cpairs(SI.db.Toons, true) do
       local cnt = 0
+      local tmp = {}
+      local minTime = 0
+
       if t.Skills then
-        for _ in pairs(t.Skills) do
-          cnt = cnt + 1
-        end
+	for _, sinfo in pairs(t.Skills) do
+	  cnt = cnt + 1
+	  if minTime > 0 then
+	    if sinfo.MaxTime and sinfo.MaxTime > time() and sinfo.MaxTime < minTime then minTime = sinfo.MaxTime
+	    elseif sinfo.Expires and sinfo.Expires > time() and sinfo.Expires < minTime then minTime = sinfo.Expires
+	    end
+	  else
+	    minTime = sinfo.MaxTime or sinfo.Expires or time()
+	  end
+	end
       end
+
       if cnt > 0 then
-        local col = columns[toon .. 1]
-        tooltip:SetCell(show, col, ClassColorise(t.Class, cnt), "CENTER", maxcol)
-        tooltip:SetCellScript(show, col, "OnEnter", hoverTooltip.ShowSkillTooltip, { toon, cnt })
+        displayText = ((minTime > 0) and SecondsToTime(minTime - time())) or "Available"
+        local col = columns[toon..1]
+        tooltip:SetCell(show, col, ClassColorise(t.Class,displayText), "CENTER",maxcol)
+        tooltip:SetCellScript(show, col, "OnEnter", hoverTooltip.ShowSkillTooltip, {toon, cnt})
         tooltip:SetCellScript(show, col, "OnLeave", CloseTooltips)
       end
     end
