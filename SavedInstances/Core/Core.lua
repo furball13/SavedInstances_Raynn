@@ -43,14 +43,15 @@ local currency = SI.currency
 local QuestExceptions = SI.QuestExceptions
 local TimewalkingItemQuest = SI.TimewalkingItemQuest
 
-local Config = SI:GetModule("Config")
-local Tooltip = SI:GetModule("Tooltip")
-local Calling = SI:GetModule("Calling")
-local Currency = SI:GetModule("Currency")
-local MythicPlus = SI:GetModule("MythicPlus")
-local Progress = SI:GetModule("Progress")
-local TradeSkill = SI:GetModule("TradeSkill")
-local Warfront = SI:GetModule("Warfront")
+local Config = SI:GetModule('Config')
+local Tooltip = SI:GetModule('Tooltip')
+local Calling = SI:GetModule('Calling')
+local Currency = SI:GetModule('Currency')
+local MythicPlus = SI:GetModule('MythicPlus')
+local Progress = SI:GetModule('Progress')
+local Professions = SI:GetModule('Professions')
+local TradeSkill = SI:GetModule('TradeSkill')
+local Warfront = SI:GetModule('Warfront')
 
 SI.Indicators = {
   ICON_STAR = ICON_LIST[1] .. "16:16:0:0|t",
@@ -201,11 +202,7 @@ SI.defaultDB = {
   -- Title: string
   -- Link: hyperlink
   -- Expires: expiration
-  -- Available: available charges
-  -- CooldownDuration: cooldown for each charge
-  -- Max: max charges
-  -- MaxTime: time until all charges available
-  -- cdType: spell or item
+
   -- BonusRoll: key: int value:
   -- name: string
   -- time: int
@@ -281,6 +278,9 @@ SI.defaultDB = {
   --   scenario = (boolean),
   --   boss = (boolean),
   -- }
+
+  -- Professions
+  -- table<string, QuestStore|QuestListStore|table>
 
   -- Calling
   -- unlocked = (boolean),
@@ -563,6 +563,8 @@ function SI:QuestIgnored(questID)
     end
     return true
   elseif Progress:QuestEnabled(questID) then
+    return true
+  elseif Professions:QuestEnabled(questID) then
     return true
   end
 end
@@ -1426,7 +1428,9 @@ function SI:UpdateToonData()
           end
         end
         Progress:OnDailyReset(toon)
-        ti.DailyResetTime = (ti.DailyResetTime and ti.DailyResetTime + 24 * 3600) or nextreset
+        Professions:OnDailyReset(toon)
+        ti.DailyResetTime = (ti.DailyResetTime and ti.DailyResetTime + 24*3600) or nextreset
+
       end
     end
     Calling:OnDailyReset()
@@ -1470,18 +1474,7 @@ function SI:UpdateToonData()
     if ti.Skills then
       for spellid, sinfo in pairs(ti.Skills) do
         if sinfo.Expires and sinfo.Expires < time() then
-	  if not sinfo.MaxTime or sinfo.MaxTime < time() then
-	    if sinfo.cdType == "item" then
-	      ti.Skills[spellid] = nil
-	    end
-	  else
-	    -- reset cooldown for next charge
-	    sinfo.Expires = sinfo.Expires + (sinfo.CooldownDuration or 0)
-	    if sinfo.Available and sinfo.MaxCharges and sinfo.Available < sinfo.MaxCharges then sinfo.Available = sinfo.Available + 1 end
-	  end
-	else
-	  -- no expire, so all charges should be available
-	  if sinfo.Available and sinfo.MaxCharges and sinfo.Available < sinfo.MaxCharges then sinfo.Available = sinfo.MaxCharges end
+          ti.Skills[spellid] = nil
         end
       end
     end
@@ -1854,10 +1847,9 @@ hoverTooltip.ShowSkillTooltip = function(cell, arg, ...)
   for _, sinfo in ipairs(tmp) do
     local line = indicatortip:AddLine()
     local title = sinfo.Link or sinfo.Title or "???"
-    if sinfo.Available and sinfo.MaxCharges then title = title .. " (" .. sinfo.Available .. "/" .. sinfo.MaxCharges .. ")" end
-    local tstr = SecondsToTime((sinfo.Expires or 0) - time()) .. ((sinfo.MaxTime and " (" .. SecondsToTime(sinfo.MaxTime - time()) .. ")") or "")
-    indicatortip:SetCell(line,1,title,"LEFT",2)
-    indicatortip:SetCell(line,3,tstr,"RIGHT")
+    local tstr = SecondsToTime((sinfo.Expires or 0) - time())
+    indicatortip:SetCell(line, 1, title, "LEFT", 2)
+    indicatortip:SetCell(line, 3, tstr, "RIGHT")
   end
   indicatortip:Show()
 end
@@ -2565,6 +2557,7 @@ function SI:toonInit()
   ti.Quests = ti.Quests or {}
   ti.Skills = ti.Skills or {}
   ti.Progress = ti.Progress or {}
+  ti.Professions = ti.Professions or {}
   ti.DailyWorldQuest = nil -- REMOVED
   ti.Artifact = nil -- REMOVED
   ti.Cloak = nil -- REMOVED
@@ -3942,6 +3935,15 @@ function SI:ShowTooltip(anchorframe)
     end
   end)
 
+  Professions:ShowTooltip(tooltip, columns, showall, function()
+    if SI.db.Tooltip.CategorySpaces then
+      addsep()
+    end
+    if SI.db.Tooltip.ShowCategories then
+      tooltip:AddLine(YELLOWFONT .. L["Profession Quests"] .. FONTEND)
+    end
+  end)
+
   if SI.db.Tooltip.TrackSkills or showall then
     local show = false
     for toon, t in cpairs(SI.db.Toons, true) do
@@ -3958,27 +3960,15 @@ function SI:ShowTooltip(anchorframe)
     end
     for toon, t in cpairs(SI.db.Toons, true) do
       local cnt = 0
-      local tmp = {}
-      local minTime = 0
-
       if t.Skills then
-	for _, sinfo in pairs(t.Skills) do
-	  cnt = cnt + 1
-	  if minTime > 0 then
-	    if sinfo.MaxTime and sinfo.MaxTime > time() and sinfo.MaxTime < minTime then minTime = sinfo.MaxTime
-	    elseif sinfo.Expires and sinfo.Expires > time() and sinfo.Expires < minTime then minTime = sinfo.Expires
-	    end
-	  else
-	    minTime = sinfo.MaxTime or sinfo.Expires or time()
-	  end
-	end
+        for _ in pairs(t.Skills) do
+          cnt = cnt + 1
+        end
       end
-
       if cnt > 0 then
-        displayText = ((minTime > 0) and SecondsToTime(minTime - time())) or "Available"
-        local col = columns[toon..1]
-        tooltip:SetCell(show, col, ClassColorise(t.Class,displayText), "CENTER",maxcol)
-        tooltip:SetCellScript(show, col, "OnEnter", hoverTooltip.ShowSkillTooltip, {toon, cnt})
+        local col = columns[toon .. 1]
+        tooltip:SetCell(show, col, ClassColorise(t.Class, cnt), "CENTER", maxcol)
+        tooltip:SetCellScript(show, col, "OnEnter", hoverTooltip.ShowSkillTooltip, { toon, cnt })
         tooltip:SetCellScript(show, col, "OnLeave", CloseTooltips)
       end
     end
